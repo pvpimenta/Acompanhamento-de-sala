@@ -86,7 +86,7 @@
             cursor: pointer;
         }
 
-        /* SWICH / BOTÃO DESLIZANTE DE BLOQUEIO */
+        /* BOTÃO DESLIZANTE DE BLOQUEIO */
         .lock-container {
             display: flex;
             align-items: center;
@@ -165,13 +165,12 @@
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
-            transition: all 0.15s ease-in-out;
+            transition: all 0.2s ease-in-out;
             box-shadow: 0 4px 10px rgba(0,0,0,0.15);
             user-select: none;
         }
 
         .btn:active { transform: scale(0.94); }
-        .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
 
         .btn-mode { background: #e9ecef; color: #333; }
         .btn-mode.active { background: #28a745; color: white; border: 2px solid #1e7e34; }
@@ -279,13 +278,14 @@
         </div>
     </div>
 
-    <div id="hint">🔒 Modo Apresentação Ativo: Girar e visualizar habilitados. Edição bloqueada.</div>
+    <div id="hint">🔒 Modo Apresentação: Girar e navegar liberados. Edição bloqueada.</div>
 
     <div id="ui-panel">
         <button id="btn-camera" class="btn btn-mode active">👁️ Girar Sala</button>
-        <button id="btn-move" class="btn btn-mode" disabled>🤚 Mover Alunos</button>
+        <!-- Botões de edição recebem a classe .btn-edit para poderem ser escondidos -->
+        <button id="btn-move" class="btn btn-mode btn-edit">🤚 Mover Alunos</button>
         <button id="btn-fit" class="btn btn-action">📐 Centralizar</button>
-        <button id="btn-save" class="btn btn-save" disabled>💾 Salvar Chamada</button>
+        <button id="btn-save" class="btn btn-save btn-edit">💾 Salvar Chamada</button>
         <button id="btn-report" class="btn btn-report">📊 Relatório Mensal</button>
     </div>
 
@@ -391,7 +391,7 @@
         boardLabel.position.set(0, 6.5, -14.3);
         scene.add(boardLabel);
 
-        // PROFESSOR (COM ETIQUETA EXCLUSIVA "Professor de Matemática")
+        // PROFESSOR (APENAS "Professor de Matemática")
         const teacher = new THREE.Group();
         const tTorso = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 3.6), new THREE.MeshStandardMaterial({ color: 0x0d6efd }));
         tTorso.position.y = 1.8;
@@ -400,10 +400,9 @@
         tHead.position.y = 3.9;
         teacher.add(tHead);
         
-        // Nome Flutuante do Professor
         const teacherDiv = document.createElement('div');
         teacherDiv.className = 'name-label teacher-label';
-        teacherDiv.textContent = 'Professor';
+        teacherDiv.textContent = 'Professor de Matemática';
         const teacherLabel = new CSS2DObject(teacherDiv);
         teacherLabel.position.set(0, 4.8, 0);
         teacher.add(teacherLabel);
@@ -509,7 +508,7 @@
             }
         }
 
-        // 5. CONTROLES DA CÂMERA E SISTEMA DE TRAVA
+        // 5. CONTROLES DA CÂMERA E SISTEMA DE TRAVA DENSAMENTE AJUSTADO
         const orbitControls = new OrbitControls(camera, renderer.domElement);
         orbitControls.enableDamping = true;
 
@@ -523,32 +522,32 @@
         const lockToggle = document.getElementById('lock-toggle');
         const lockLabel = document.getElementById('lock-label');
         const btnMove = document.getElementById('btn-move');
-        const btnSave = document.getElementById('btn-save');
         const btnCamera = document.getElementById('btn-camera');
         const hint = document.getElementById('hint');
+        const editButtons = document.querySelectorAll('.btn-edit');
 
-        // LÓGICA DA TRAVA DE SEGURANÇA
+        // LÓGICA DA TRAVA DE SEGURANÇA (ESCONDE/MOSTRA BOTÕES)
         function setLockState(isLocked) {
             if (isLocked) {
-                // TRAVADO (Modo Direção/Visualização)
+                // TRAVADO: Esconde os botões de edição
                 lockLabel.textContent = "🔒 Travar Edição";
                 lockLabel.style.color = "#dc3545";
-                btnMove.disabled = true;
-                btnSave.disabled = true;
                 
-                // Força o modo de câmera (Girar)
+                editButtons.forEach(btn => btn.style.display = 'none');
+                
                 currentMode = 'camera';
                 btnCamera.classList.add('active');
                 btnMove.classList.remove('active');
                 orbitControls.enabled = true;
                 deselect();
-                hint.textContent = "🔒 Modo Apresentação: Girar e navegar liberados. Edição bloqueada.";
+                hint.textContent = "🔒 Modo Apresentação: Girar e navegar liberados. Edição oculta.";
             } else {
-                // DESBLOQUEADO (Modo Edição/Professor)
+                // DESBLOQUEADO: Exibe os botões de edição novamente
                 lockLabel.textContent = "🔓 Edição Liberada";
                 lockLabel.style.color = "#28a745";
-                btnMove.disabled = false;
-                btnSave.disabled = false;
+                
+                editButtons.forEach(btn => btn.style.display = 'inline-block');
+                
                 hint.textContent = "🔓 Modo Edição: Escolha Girar ou Mover Alunos e dê duplo toque para Falta.";
             }
         }
@@ -569,11 +568,10 @@
             isDragging = false;
         }
 
-        // CLIQUE / TOQUE NA SALA
         window.addEventListener('pointerdown', (e) => {
             if (e.target.closest('#ui-panel') || e.target.closest('#top-bar') || e.target.closest('#report-modal')) return;
 
-            // Se estiver TRAVADO, ignora qualquer tentativa de mover ou marcar falta
+            // Se a trava estiver ligada, bloqueia toques nos alunos
             if (lockToggle.checked) return;
 
             mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
@@ -795,7 +793,6 @@
         function updateLabelScales() {
             const baseDistance = 35.0;
             
-            // Redimensiona etiquetas dos alunos
             objetosArrastaveis.forEach(alunoGroup => {
                 const dist = camera.position.distanceTo(alunoGroup.position);
                 const scaleFactor = Math.max(0.4, Math.min(3.5, baseDistance / dist));
@@ -808,7 +805,6 @@
                 });
             });
 
-            // Redimensiona etiqueta do Professor
             const distT = camera.position.distanceTo(teacher.position);
             const scaleT = Math.max(0.4, Math.min(3.5, baseDistance / distT));
             teacherDiv.style.transform = `scale(${scaleT.toFixed(2)})`;
@@ -821,7 +817,7 @@
             orbitControls.enabled = true;
             deselect();
             hint.textContent = lockToggle.checked 
-                ? "🔒 Modo Apresentação: Girar e navegar liberados. Edição bloqueada."
+                ? "🔒 Modo Apresentação: Girar e navegar liberados. Edição oculta."
                 : "Modo Girar: Deslize para girar a visão da sala.";
         });
 
@@ -839,7 +835,7 @@
         document.getElementById('btn-save').addEventListener('click', salvarChamada);
 
         // Inicialização
-        setLockState(true); // Começa Travado por Padrão para Apresentação
+        setLockState(true); // Começa Travado e com Botões de Edição Ocultos
         fitScreen();
         carregarChamada(datePicker.value);
 
