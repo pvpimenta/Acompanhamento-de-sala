@@ -353,30 +353,24 @@
         import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 
         // 1. FIREBASE CONFIG
-   
         const firebaseConfig = {
-          apiKey: "AIzaSyAcUCicgWDDltYCud77lxlPwPU6YgTQIpg",
-          authDomain: "chamada-sala-3d.firebaseapp.com",
-          projectId: "chamada-sala-3d",
-          storageBucket: "chamada-sala-3d.firebasestorage.app",
-          messagingSenderId: "1017275951090",
-          appId: "1:1017275951090:web:0814ea04cb2c3422b36d6b"
+            apiKey: "AIzaSyAcUCicgWDDltYCud77lxlPwPU6YgTQIpg",
+            authDomain: "chamada-sala-3d.firebaseapp.com",
+            projectId: "chamada-sala-3d",
+            storageBucket: "chamada-sala-3d.firebasestorage.app",
+            messagingSenderId: "1017275951090",
+            appId: "1:1017275951090:web:0814ea04cb2c3422b36d6b"
         };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-
-
-
-
-        
         let db = null;
         try {
-            if (firebaseConfig.apiKey !== "SUA_API_KEY") {
+            if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "SUA_API_KEY") {
                 firebase.initializeApp(firebaseConfig);
                 db = firebase.firestore();
             }
-        } catch(e) { console.warn("Usando armazenamento LocalStorage."); }
+        } catch(e) { 
+            console.warn("Usando armazenamento LocalStorage.", e); 
+        }
 
         // 2. SETUP CENA
         const scene = new THREE.Scene();
@@ -835,7 +829,7 @@ const app = initializeApp(firebaseConfig);
 
         reportMonth.addEventListener('change', gerarRelatorio);
 
-        // 8. BOTOES DE MODO E AJUSTES DE TELA
+        // 8. BOTÕES DE MODO E AJUSTES DE TELA
         function fitScreen() {
             const isPortrait = window.innerHeight > window.innerWidth;
             if (isPortrait) camera.position.set(0, 32, 45);
@@ -866,7 +860,9 @@ const app = initializeApp(firebaseConfig);
 
             const distT = camera.position.distanceTo(teacher.position);
             const scaleT = Math.max(0.4, Math.min(3.5, baseDistance / distT));
-            teacherDiv.style.transform = `scale(${scaleT.toFixed(2)})`;
+            if (teacherLabel.element) {
+                teacherLabel.element.style.transform = `scale(${scaleT.toFixed(2)})`;
+            }
         }
 
         btnCamera.addEventListener('click', () => {
@@ -875,48 +871,33 @@ const app = initializeApp(firebaseConfig);
             btnMove.classList.remove('active');
             orbitControls.enabled = true;
             deselect();
-            hint.textContent = lockToggle.checked 
-                ? "🔒 Modo Apresentação: Girar e navegar liberados. Edição bloqueada."
-                : "Modo Girar: Deslize para girar a visão da sala.";
         });
 
         btnMove.addEventListener('click', () => {
-            if (lockToggle.checked) return;
             currentMode = 'move';
             btnMove.classList.add('active');
             btnCamera.classList.remove('active');
             orbitControls.enabled = false;
-            deselect();
-            hint.textContent = "Modo Mover: Clique num aluno e arraste para qualquer lugar!";
         });
 
         document.getElementById('btn-fit').addEventListener('click', fitScreen);
         document.getElementById('btn-save').addEventListener('click', salvarChamada);
 
-        // Inicialização
-        setLockState(true);
-        fitScreen();
-        carregarChamada(datePicker.value);
+        window.addEventListener('resize', fitScreen);
 
-        // LOOP DE ANIMAÇÃO
-        const clock = new THREE.Clock();
+        // INICIALIZAÇÃO DA ANIMAÇÃO
         function animate() {
             requestAnimationFrame(animate);
-            if (orbitControls.enabled) orbitControls.update();
-            
-            if (selectionRing.visible && selectedAluno) {
-                selectionRing.rotation.z += 0.03;
-                const s = 1 + Math.sin(clock.getElapsedTime() * 5) * 0.1;
-                selectionRing.scale.set(s, s, s);
-            }
-
+            orbitControls.update();
             updateLabelScales();
-
             renderer.render(scene, camera);
             labelRenderer.render(scene, camera);
         }
 
-        window.addEventListener('resize', fitScreen);
+        // Executar na inicialização
+        fitScreen();
+        setLockState(lockToggle.checked);
+        carregarChamada(datePicker.value);
         animate();
     </script>
 </body>
